@@ -1,0 +1,1463 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title id="pageTitle">🌊 30-Day Growth Sprint 🚀</title>
+    <meta name="description" content="Personal 30-day productivity tracker with habits, schedule, pomodoro, and progress heatmap." />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      /* ── Base ── */
+      body {
+        background-color: #040f16;
+        font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      }
+
+      /* ── Glassmorphism card ── */
+      .glass-card {
+        background: rgba(10, 25, 47, 0.75);
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(45, 212, 191, 0.15);
+      }
+
+      /* ── Checkbox glow on checked ── */
+      .glow-aqua:checked {
+        filter: drop-shadow(0 0 8px #2dd4bf);
+      }
+
+      /* ── Custom scrollbar ── */
+      .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #2dd4bf;
+        border-radius: 10px;
+      }
+
+      /* ── Streak card pulse ── */
+      @keyframes pulse-glow {
+        0%, 100% { box-shadow: 0 0 8px rgba(251, 191, 36, 0.3); }
+        50%       { box-shadow: 0 0 20px rgba(251, 191, 36, 0.6); }
+      }
+      .streak-glow { animation: pulse-glow 2s ease-in-out infinite; }
+
+      /* ── Heatmap cell hover ── */
+      .heatmap-cell { transition: all 0.2s ease; }
+      .heatmap-cell:hover { transform: scale(1.15); }
+
+      /* ── Mood button hover / active ── */
+      .mood-btn { transition: all 0.15s ease; }
+      .mood-btn:hover { transform: scale(1.2); }
+      .mood-btn.active { transform: scale(1.25); }
+
+      /* ── Tab active style is applied via JS using Tailwind classes ── */
+    </style>
+  </head>
+
+  <body class="text-cyan-50 min-h-screen pb-16 selection:bg-teal-500 selection:text-white">
+
+    <!-- Background blobs -->
+    <div class="fixed top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-teal-500/10 rounded-full blur-[120px] pointer-events-none"></div>
+    <div class="fixed bottom-[-10%] right-[-10%] w-[40vw] h-[40vw] bg-blue-500/10 rounded-full blur-[120px] pointer-events-none"></div>
+
+    <!-- ═══════════════════════════════════════════ HEADER ═══ -->
+    <header class="max-w-6xl mx-auto pt-8 px-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
+
+      <!-- Title + live date -->
+      <div>
+        <div class="flex items-center gap-2">
+          <span id="headerEmoji" class="text-2xl">🌊</span>
+          <h1 id="headerTitle"
+              class="text-3xl font-black tracking-wide bg-gradient-to-r from-teal-400 via-cyan-400 to-sky-400 bg-clip-text text-transparent uppercase">
+          </h1>
+        </div>
+        <p id="liveDateDisplay"
+           class="text-cyan-300 font-bold text-sm mt-1 bg-cyan-950/30 border border-cyan-500/10 px-3 py-1 rounded-lg inline-block shadow-sm">
+        </p>
+      </div>
+
+      <!-- Progress cards -->
+      <div class="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
+
+        <!-- Daily progress circle -->
+        <div class="glass-card rounded-2xl p-4 flex items-center gap-4 shadow-2xl border border-cyan-500/20 flex-1 min-w-[220px]">
+          <div class="relative w-16 h-16 flex items-center justify-center">
+            <svg class="w-full h-full transform -rotate-90">
+              <circle cx="32" cy="32" r="28" stroke="rgba(45,212,191,0.05)" stroke-width="6" fill="transparent"/>
+              <circle id="progressCircle" cx="32" cy="32" r="28" stroke="#2dd4bf" stroke-width="6" fill="transparent"
+                      stroke-dasharray="175" stroke-dashoffset="175" class="transition-all duration-500 ease-out"/>
+            </svg>
+            <span id="progressText" class="absolute text-sm font-black text-cyan-300">0%</span>
+          </div>
+          <div>
+            <div class="text-xs uppercase tracking-widest text-teal-400 font-bold">Daily Progress</div>
+            <div id="progressStatus" class="text-sm font-medium text-cyan-100 mt-0.5">Let's create momentum! 💧</div>
+          </div>
+        </div>
+
+        <!-- Monthly progress circle -->
+        <div class="glass-card rounded-2xl p-4 flex items-center gap-4 shadow-2xl border border-cyan-500/20 min-w-[220px]">
+          <div class="relative w-16 h-16 flex items-center justify-center">
+            <svg class="w-full h-full transform -rotate-90">
+              <circle cx="32" cy="32" r="28" stroke="rgba(45,212,191,0.05)" stroke-width="6" fill="transparent"/>
+              <circle id="monthlyProgressCircle" cx="32" cy="32" r="28" stroke="#60a5fa" stroke-width="6" fill="transparent"
+                      stroke-dasharray="175" stroke-dashoffset="175" class="transition-all duration-500 ease-out"/>
+            </svg>
+            <span id="monthlyProgressText" class="absolute text-sm font-black text-sky-300">0%</span>
+          </div>
+          <div>
+            <div class="text-xs uppercase tracking-widest text-sky-400 font-bold">Month Progress</div>
+            <div id="monthlyProgressStatus" class="text-sm font-medium text-cyan-100 mt-0.5">Track the whole sprint.</div>
+          </div>
+        </div>
+
+        <!-- Streak card -->
+        <div id="streakCard"
+             class="glass-card rounded-2xl p-4 flex items-center gap-3 shadow-2xl border border-amber-500/30 streak-glow min-w-[140px]">
+          <span class="text-3xl">🔥</span>
+          <div>
+            <div class="text-xs uppercase tracking-widest text-amber-400 font-bold">Streak</div>
+            <div id="streakCount" class="text-2xl font-black text-amber-300">0</div>
+            <div class="text-[10px] text-amber-200/60">consecutive days</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Nav links -->
+      <div class="mt-6 flex flex-wrap justify-end gap-3 px-4 md:px-0">
+        <a href="days.html"
+           class="rounded-full border border-cyan-500/40 bg-cyan-500/10 px-5 py-3 text-xs font-black uppercase tracking-wider text-cyan-100 hover:bg-cyan-500/20 transition">Days</a>
+        <a href="books.html"
+           class="rounded-full border border-sky-500/40 bg-sky-500/10 px-5 py-3 text-xs font-black uppercase tracking-wider text-sky-100 hover:bg-sky-500/20 transition">Books</a>
+        <button onclick="exportData()"
+                class="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-5 py-3 text-xs font-black uppercase tracking-wider text-emerald-100 hover:bg-emerald-500/20 transition">Export Data</button>
+        <label class="rounded-full border border-violet-500/40 bg-violet-500/10 px-5 py-3 text-xs font-black uppercase tracking-wider text-violet-100 hover:bg-violet-500/20 transition cursor-pointer">
+          Import Data
+          <input type="file" accept=".json" onchange="importData(event)" class="hidden" />
+        </label>
+      </div>
+    </header>
+
+    <!-- ═════════════════════════════════ DAILY QUOTE ═══ -->
+    <div class="max-w-6xl mx-auto px-4 mb-6">
+      <div class="glass-card rounded-2xl p-4 border border-cyan-500/10 text-center">
+        <p id="dailyQuote" class="text-sm italic text-cyan-200/80"></p>
+        <p id="dailyQuoteAuthor" class="text-xs text-teal-400/70 mt-1"></p>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════ HEATMAP ═══ -->
+    <div class="max-w-6xl mx-auto px-4 mb-6">
+      <section class="glass-card rounded-3xl p-5 shadow-xl border border-teal-500/10">
+        <h2 class="text-sm font-bold text-cyan-200 flex items-center gap-2 mb-3">
+          <span>📊</span> <span id="heatmapTitle">30-Day Progress Heatmap</span>
+        </h2>
+        <div class="flex flex-wrap gap-1.5" id="heatmapGrid"></div>
+        <div class="flex items-center gap-2 mt-3 text-[10px] text-cyan-300/60">
+          <span>Less</span>
+          <div class="w-4 h-4 rounded bg-blue-950/60 border border-blue-500/20"></div>
+          <div class="w-4 h-4 rounded bg-amber-900/60"></div>
+          <div class="w-4 h-4 rounded bg-amber-600/70"></div>
+          <div class="w-4 h-4 rounded bg-emerald-600/80"></div>
+          <div class="w-4 h-4 rounded bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.4)]"></div>
+          <span>More</span>
+        </div>
+      </section>
+    </div>
+
+    <!-- ════════════════════════════════ MAIN GRID ═══ -->
+    <main class="max-w-6xl mx-auto px-4 grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+      <!-- ─── LEFT COLUMN ─── -->
+      <div class="lg:col-span-1 space-y-6">
+
+        <!-- Daily Habits (Non-Negotiables) -->
+        <section class="glass-card rounded-3xl p-6 shadow-xl border-t-4 border-teal-500">
+          <h2 class="text-lg font-bold text-cyan-200 flex items-center gap-2 mb-4">
+            <span>🔥</span> Daily Non-Negotiables
+          </h2>
+          <div class="space-y-3.5" id="nonNegotiablesList">
+            <!-- Rendered from CONFIG.HABITS by JS -->
+          </div>
+        </section>
+
+        <!-- Mood Tracker -->
+        <section class="glass-card rounded-3xl p-6 shadow-xl border-t-4 border-purple-500">
+          <h2 class="text-lg font-bold text-cyan-200 flex items-center gap-2 mb-3">
+            <span>😊</span> How are you feeling?
+          </h2>
+          <div class="flex justify-center gap-3" id="moodButtons">
+            <button onclick="setMood('😴')" class="mood-btn text-2xl p-2 rounded-xl bg-blue-950/40 border border-blue-500/20 hover:bg-blue-900/40" title="Tired">😴</button>
+            <button onclick="setMood('😐')" class="mood-btn text-2xl p-2 rounded-xl bg-blue-950/40 border border-blue-500/20 hover:bg-blue-900/40" title="Okay">😐</button>
+            <button onclick="setMood('😊')" class="mood-btn text-2xl p-2 rounded-xl bg-blue-950/40 border border-blue-500/20 hover:bg-blue-900/40" title="Good">😊</button>
+            <button onclick="setMood('🔥')" class="mood-btn text-2xl p-2 rounded-xl bg-blue-950/40 border border-blue-500/20 hover:bg-blue-900/40" title="On Fire">🔥</button>
+          </div>
+          <p id="moodStatus" class="text-xs text-cyan-300/60 text-center mt-2">Tap to log your mood</p>
+        </section>
+
+        <!-- Sleep Log -->
+        <section class="glass-card rounded-3xl p-6 shadow-xl border-t-4 border-indigo-500">
+          <h2 class="text-lg font-bold text-cyan-200 flex items-center gap-2 mb-3">
+            <span>🌙</span> Sleep Log
+          </h2>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs text-cyan-300/70 block mb-1">Bedtime</label>
+              <input type="time" id="sleepBedtime" onchange="saveSleepLog()"
+                     class="w-full bg-blue-950/50 border border-blue-500/20 rounded-xl px-3 py-2 text-sm text-cyan-100 focus:outline-none focus:border-teal-400" />
+            </div>
+            <div>
+              <label class="text-xs text-cyan-300/70 block mb-1">Wake up</label>
+              <input type="time" id="sleepWakeup" onchange="saveSleepLog()"
+                     class="w-full bg-blue-950/50 border border-blue-500/20 rounded-xl px-3 py-2 text-sm text-cyan-100 focus:outline-none focus:border-teal-400" />
+            </div>
+          </div>
+          <div id="sleepDuration" class="text-center mt-3 text-sm font-bold text-indigo-300"></div>
+        </section>
+
+        <!-- Daily Log + Secret Letter -->
+        <section class="glass-card rounded-3xl p-6 shadow-xl border border-blue-500/20">
+          <h2 class="text-lg font-bold text-sky-300 flex items-center gap-2 mb-2">
+            <span>🌍</span> Daily Log Stream
+          </h2>
+          <div class="space-y-3">
+            <textarea id="progressLogInput" rows="3"
+                      class="w-full text-sm bg-blue-950/50 border border-blue-500/20 rounded-xl p-3 focus:outline-none focus:border-teal-500 text-cyan-100 placeholder-cyan-300/30"
+                      placeholder="Log your achievements today... 💧"></textarea>
+            <button onclick="saveLog()" id="syncBtn"
+                    class="w-full py-2.5 bg-gradient-to-r from-teal-500 to-cyan-500 transition-all text-sm font-bold text-white rounded-xl shadow-lg">
+              Save Log
+            </button>
+          </div>
+          <div id="logFeed" class="mt-4 max-h-40 overflow-y-auto custom-scrollbar space-y-2 pt-2 border-t border-blue-900/40"></div>
+
+          <!-- Secret Letter -->
+          <div class="glass-card rounded-3xl p-6 shadow-xl border border-teal-500/10 mt-6">
+            <h4 id="secretLetterTitle" class="text-lg font-bold text-cyan-200 mb-2"></h4>
+            <p id="ventPrompt" class="text-sm text-cyan-100/80 mb-4"></p>
+            <textarea id="ventTextarea" rows="6"
+                      placeholder="Write your hidden letter here..."
+                      class="w-full resize-none rounded-3xl bg-blue-950/60 border border-blue-500/20 px-4 py-3 text-sm text-cyan-100 focus:outline-none focus:border-teal-400"></textarea>
+            <div class="mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <button type="button" onclick="storeVentEntry()"
+                      class="w-full sm:w-auto px-4 py-2 rounded-2xl bg-gradient-to-r from-teal-500 to-cyan-500 text-xs font-bold uppercase tracking-wide text-slate-950">
+                Store vent
+              </button>
+              <span id="ventCount" class="text-xs text-cyan-300/70">No stored vents yet.</span>
+            </div>
+            <p id="ventUnlockHint" class="mt-3 text-xs text-cyan-300/70"></p>
+            <div id="ventHistory" class="mt-4 space-y-3"></div>
+          </div>
+        </section>
+
+        <!-- Pomodoro Timer -->
+        <section class="glass-card rounded-3xl p-6 shadow-xl border-t-4 border-amber-500 mt-6">
+          <h2 class="text-lg font-bold text-cyan-200 flex items-center gap-2 mb-4">
+            <span>⏱️</span> Pomodoro Timer
+          </h2>
+
+          <!-- State tabs -->
+          <div class="flex gap-1.5 mb-4 bg-blue-950/40 p-1 rounded-xl border border-blue-900/50 text-xs w-full max-w-xs mx-auto">
+            <button onclick="setPomoSessionState('work')"       id="pomoStateTab-work"       class="flex-1 text-center py-1.5 font-bold rounded-lg transition-all bg-amber-500/20 text-amber-300">Work</button>
+            <button onclick="setPomoSessionState('shortBreak')" id="pomoStateTab-shortBreak" class="flex-1 text-center py-1.5 font-bold rounded-lg transition-all text-cyan-300/60 hover:text-cyan-200">Short Break</button>
+            <button onclick="setPomoSessionState('longBreak')"  id="pomoStateTab-longBreak"  class="flex-1 text-center py-1.5 font-bold rounded-lg transition-all text-cyan-300/60 hover:text-cyan-200">Long Break</button>
+          </div>
+
+          <div class="flex flex-col items-center justify-center">
+            <div id="pomodoroDisplay" class="text-4xl font-black text-white tracking-widest mb-2 font-mono">25:00</div>
+
+            <!-- Session counter -->
+            <div class="flex items-center gap-2 mb-4">
+              <button onclick="adjustPomoSessions(-1)"
+                      class="w-5 h-5 rounded-full bg-blue-950/60 border border-blue-500/20 text-cyan-300 hover:bg-blue-900/60 flex items-center justify-center font-bold text-xs transition"
+                      title="Decrease sessions">-</button>
+              <div class="text-[11px] text-amber-300 font-bold flex items-center gap-1 bg-amber-500/10 border border-amber-500/20 px-2.5 py-0.5 rounded-full shadow-[0_0_10px_rgba(245,158,11,0.1)]">
+                <span>🍅</span> <span id="pomoSessionCount">0</span> sessions today
+              </div>
+              <button onclick="adjustPomoSessions(1)"
+                      class="w-5 h-5 rounded-full bg-blue-950/60 border border-blue-500/20 text-cyan-300 hover:bg-blue-900/60 flex items-center justify-center font-bold text-xs transition"
+                      title="Increase sessions">+</button>
+            </div>
+
+            <!-- Controls -->
+            <div class="flex flex-wrap justify-center gap-3">
+              <button onclick="togglePomodoro()" id="pomodoroToggleBtn"
+                      class="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-sm font-bold text-white shadow-lg w-24">Start</button>
+              <button onclick="resetPomodoro()"
+                      class="px-5 py-2 rounded-xl bg-blue-950/60 border border-blue-500/20 text-sm font-bold text-cyan-100 hover:bg-blue-900/60 transition">Reset</button>
+              <button onclick="togglePomodoroSettings()" id="pomodoroSettingsBtn"
+                      class="px-3 py-2 rounded-xl bg-blue-950/60 border border-blue-500/20 text-sm font-bold text-cyan-100 hover:bg-blue-900/60 transition flex items-center gap-1.5">
+                <span>⚙️</span> Customize
+              </button>
+            </div>
+
+            <!-- Settings panel -->
+            <div id="pomodoroSettingsPanel" class="hidden mt-5 pt-4 border-t border-cyan-500/10 w-full space-y-4">
+              <div class="grid grid-cols-3 gap-2">
+                <div>
+                  <label class="text-[10px] uppercase tracking-wider text-cyan-300/70 block mb-1 text-center">Work (Min)</label>
+                  <input type="number" id="pomoWorkDuration" min="1" max="180"
+                         class="w-full bg-blue-950/50 border border-blue-500/20 rounded-xl px-2 py-1.5 text-xs text-cyan-100 text-center focus:outline-none focus:border-teal-400" />
+                </div>
+                <div>
+                  <label class="text-[10px] uppercase tracking-wider text-cyan-300/70 block mb-1 text-center">Short Break</label>
+                  <input type="number" id="pomoShortDuration" min="1" max="60"
+                         class="w-full bg-blue-950/50 border border-blue-500/20 rounded-xl px-2 py-1.5 text-xs text-cyan-100 text-center focus:outline-none focus:border-teal-400" />
+                </div>
+                <div>
+                  <label class="text-[10px] uppercase tracking-wider text-cyan-300/70 block mb-1 text-center">Long Break</label>
+                  <input type="number" id="pomoLongDuration" min="1" max="60"
+                         class="w-full bg-blue-950/50 border border-blue-500/20 rounded-xl px-2 py-1.5 text-xs text-cyan-100 text-center focus:outline-none focus:border-teal-400" />
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-3 items-center">
+                <div>
+                  <label class="text-[10px] uppercase tracking-wider text-cyan-300/70 block mb-1">Alert Sound</label>
+                  <select id="pomoSoundSelect"
+                          class="w-full bg-blue-950/50 border border-blue-500/20 rounded-xl px-2 py-1.5 text-xs text-cyan-100 focus:outline-none focus:border-teal-400">
+                    <option value="classic">Classic Chime</option>
+                    <option value="zen">Zen Bowl</option>
+                    <option value="digital">Digital Beep</option>
+                    <option value="uplifting">Uplifting Melody</option>
+                    <option value="none">Mute</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="text-[10px] uppercase tracking-wider text-cyan-300/70 block mb-1">Desktop Alerts</label>
+                  <button id="pomoNotificationToggle" onclick="togglePomoNotifications()"
+                          class="w-full py-1.5 rounded-xl text-xs font-bold transition border border-red-500/30 bg-red-950/20 text-red-400 hover:bg-red-950/30">Disabled</button>
+                </div>
+              </div>
+
+              <div class="flex gap-2">
+                <button onclick="testPomoAlert()"
+                        class="flex-1 py-2 bg-blue-900/30 hover:bg-blue-900/50 border border-blue-500/20 text-[10px] font-bold text-cyan-300 rounded-xl transition">Test Alert</button>
+                <button onclick="savePomodoroSettings()"
+                        class="flex-1 py-2 bg-gradient-to-r from-teal-500 to-cyan-500 text-[10px] font-bold text-slate-950 rounded-xl shadow-lg transition">Apply & Save</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Hydration Tracker -->
+        <section class="glass-card rounded-3xl p-6 shadow-xl border-t-4 border-sky-500 mt-6 relative">
+          <div class="absolute top-5 right-5 flex flex-col items-center justify-center">
+            <div class="bg-sky-500/20 border border-sky-500/40 text-sky-300 font-black rounded-full h-10 w-10 flex items-center justify-center shadow-[0_0_10px_rgba(14,165,233,0.3)]">
+              <span id="waterStreakCount" class="text-sm">0</span>
+            </div>
+            <div class="text-[9px] text-sky-300/60 font-bold uppercase mt-1">Streak</div>
+          </div>
+          <h2 class="text-lg font-bold text-cyan-200 flex items-center gap-2 mb-4">
+            <span>💧</span> Hydration Tracker
+          </h2>
+          <p class="text-xs text-cyan-300/70 mb-3 text-center pr-12">Aim for 8 glasses a day</p>
+          <div class="flex flex-wrap justify-center gap-2" id="waterTrackerGrid">
+            <!-- Rendered by JS -->
+          </div>
+        </section>
+
+      </div><!-- end left column -->
+
+      <!-- ─── RIGHT COLUMN (2/3 width) ─── -->
+      <div class="lg:col-span-2 space-y-6">
+
+        <!-- Week tabs -->
+        <div class="flex flex-wrap gap-2 bg-blue-950/40 p-2 rounded-2xl border border-blue-900/50">
+          <button onclick="switchTab('week1')" id="tab-week1" class="day-tab flex-1 min-w-[80px] text-center py-2.5 text-xs font-black tracking-widest rounded-xl transition-all">WEEK 1</button>
+          <button onclick="switchTab('week2')" id="tab-week2" class="day-tab flex-1 min-w-[80px] text-center py-2.5 text-xs font-black tracking-widest rounded-xl transition-all">WEEK 2</button>
+          <button onclick="switchTab('week3')" id="tab-week3" class="day-tab flex-1 min-w-[80px] text-center py-2.5 text-xs font-black tracking-widest rounded-xl transition-all">WEEK 3</button>
+          <button onclick="switchTab('week4')" id="tab-week4" class="day-tab flex-1 min-w-[80px] text-center py-2.5 text-xs font-black tracking-widest rounded-xl transition-all">WEEK 4</button>
+          <button onclick="switchTab('daily')" id="tab-daily" class="day-tab flex-1 min-w-[80px] text-center py-2.5 text-xs font-black tracking-widest rounded-xl transition-all">DAILY SCHEDULE</button>
+        </div>
+
+        <!-- Tab content card -->
+        <div class="glass-card rounded-3xl p-6 shadow-2xl relative border border-teal-500/10">
+          <div class="mb-4">
+            <span id="currentTabSubtitle" class="text-xs uppercase tracking-widest font-black text-teal-400 block mb-1"></span>
+            <h3 id="currentTabTitle" class="text-2xl font-black text-white">Focus Space</h3>
+          </div>
+          <hr class="border-blue-950 my-4" />
+          <div class="space-y-6" id="tabContentArea"></div>
+
+          <!-- Shared week section (checklist + daily schedule) shown for week tabs -->
+          <div id="sharedWeeklySection" class="space-y-6 hidden mt-6">
+
+            <!-- Weekly daily schedule -->
+            <div class="glass-card rounded-3xl p-6 shadow-xl border border-teal-500/10">
+              <h4 class="text-lg font-bold text-cyan-200 mb-4">Daily Schedule</h4>
+              <div class="space-y-2.5" id="weekDailyScheduleArea"></div>
+            </div>
+
+            <!-- Weekly day checklist -->
+            <div class="glass-card rounded-3xl p-6 shadow-xl border border-teal-500/10">
+              <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-4">
+                <div>
+                  <h4 class="text-lg font-bold text-cyan-200">Weekly Day Checklist</h4>
+                  <p id="weeklyProgressStatus" class="text-sm text-cyan-100/80 mt-1">Track your weekly check-ins.</p>
+                </div>
+                <div class="flex items-center gap-4">
+                  <div class="relative w-16 h-16 flex items-center justify-center">
+                    <svg class="w-full h-full transform -rotate-90">
+                      <circle cx="32" cy="32" r="28" stroke="rgba(45,212,191,0.05)" stroke-width="6" fill="transparent"/>
+                      <circle id="weeklyProgressCircle" cx="32" cy="32" r="28" stroke="#f59e0b" stroke-width="6"
+                              fill="transparent" stroke-dasharray="175" stroke-dashoffset="175"
+                              class="transition-all duration-500 ease-out"/>
+                    </svg>
+                    <span id="weeklyProgressText" class="absolute text-sm font-black text-amber-300">0%</span>
+                  </div>
+                  <button type="button" onclick="resetWeekChecklist(currentTabKey)"
+                          class="text-xs text-teal-300 hover:text-teal-100">Clear week</button>
+                </div>
+              </div>
+              <div id="weekChecklistArea" class="space-y-3"></div>
+            </div>
+          </div><!-- end sharedWeeklySection -->
+        </div>
+
+      </div><!-- end right column -->
+    </main>
+
+    <!-- ═══════════════════════ CONFIG + SCRIPTS ═══ -->
+    <script src="config.js"></script>
+    <script>
+      // ─────────────────────────────────────────────────────────────
+      // HELPERS
+      // ─────────────────────────────────────────────────────────────
+      const weekDayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+      function setProgressCircle(circleId, textId, percent) {
+        const circle = document.getElementById(circleId);
+        const text   = document.getElementById(textId);
+        if (!circle || !text) return;
+        const offset = 2 * Math.PI * 28 * (1 - percent / 100);
+        circle.style.strokeDashoffset = offset;
+        text.innerText = `${percent}%`;
+      }
+
+      function getTodayStr() { return new Date().toLocaleDateString(); }
+      function getTodayKey() { return new Date().toISOString().slice(0, 10); }
+
+      // ─────────────────────────────────────────────────────────────
+      // INIT — Populate header & title from CONFIG
+      // ─────────────────────────────────────────────────────────────
+      function initFromConfig() {
+        const { name, sprintTitle, emoji, tagline, sprintDays } = CONFIG.OWNER;
+        document.title = `${emoji} ${name}'s ${sprintTitle} 🚀`;
+        document.getElementById("headerEmoji").textContent  = emoji;
+        document.getElementById("headerTitle").textContent  = `${name}'s ${sprintTitle}`;
+        document.getElementById("heatmapTitle").textContent = `${sprintDays}-Day Progress Heatmap`;
+
+        // Secret letter title from config
+        const sl = CONFIG.SECRET_LETTER;
+        const unlockDate = new Date();
+        unlockDate.setMonth(sl.unlockMonth);
+        unlockDate.setDate(sl.unlockDay);
+        unlockDate.setHours(0, 0, 0, 0);
+        document.getElementById("secretLetterTitle").textContent = sl.title;
+
+        renderHabitsList();
+      }
+
+      // ─────────────────────────────────────────────────────────────
+      // HABITS
+      // ─────────────────────────────────────────────────────────────
+      function renderHabitsList() {
+        const container = document.getElementById("nonNegotiablesList");
+        container.innerHTML = CONFIG.HABITS.map(h => `
+          <label class="flex items-start gap-3 p-2.5 rounded-xl hover:bg-teal-950/20 transition cursor-pointer">
+            <input type="checkbox" id="habit-${h.id}" onchange="updateProgress()"
+                   class="glow-aqua mt-1 rounded-md border-cyan-800 bg-blue-950 text-teal-500 h-4 w-4" />
+            <span class="text-sm text-cyan-100/90">
+              ${h.label}
+              ${h.sub ? `<span class="text-xs text-cyan-400/60 block">(${h.sub})</span>` : ""}
+            </span>
+          </label>`).join("");
+      }
+
+      // ─────────────────────────────────────────────────────────────
+      // WEEK TAB CONTENT — built from CONFIG.WEEKS
+      // ─────────────────────────────────────────────────────────────
+      function buildWeekContent(weekKey) {
+        const w = CONFIG.WEEKS[weekKey];
+        if (!w) return "";
+
+        const goalItems = w.goals.map(g =>
+          `<li><strong>${g.label}:</strong> ${g.text}</li>`).join("");
+
+        const dayGrid = w.days ? w.days.map(d => `
+          <div class="p-3 bg-blue-950/30 rounded-xl border border-blue-500/20">
+            <strong class="text-sky-300 text-sm block mb-1">${d.label}</strong>
+            <p class="text-xs text-cyan-100/70">${d.items.join("<br>")}</p>
+          </div>`).join("") : "";
+
+        const extraCards = (w.extraCards || []).map(c => `
+          <div class="p-4 bg-blue-950/30 rounded-xl border border-blue-500/20">
+            <h4 class="text-sm font-bold text-sky-300 mb-2">${c.title}</h4>
+            ${c.items.map(i => `<p class="text-xs text-cyan-100/70">${i}</p>`).join("")}
+          </div>`).join("");
+
+        return `
+          <div class="space-y-4">
+            <div class="p-4 bg-teal-950/30 rounded-xl border border-teal-500/20">
+              <h4 class="text-sm font-bold text-cyan-300 mb-2">Goals &amp; Focus</h4>
+              <ul class="text-sm text-cyan-100/80 space-y-1 list-disc pl-4">${goalItems}</ul>
+            </div>
+            ${dayGrid ? `<div class="grid grid-cols-1 md:grid-cols-2 gap-4">${dayGrid}</div>` : ""}
+            ${extraCards ? `<div class="grid grid-cols-1 md:grid-cols-2 gap-4">${extraCards}</div>` : ""}
+          </div>`;
+      }
+
+      // Daily schedule tab content — built from CONFIG.SCHEDULE & CONFIG.WEEKLY_FOCUS
+      function buildDailyContent() {
+        const focusGrid = CONFIG.WEEKLY_FOCUS.map(wf => {
+          const span = wf.day === "Sun" ? " col-span-2 md:col-span-2" : "";
+          return `<div class="bg-blue-900/30 p-2 rounded border border-blue-500/10${span}"><strong>${wf.day}:</strong> ${wf.focus}</div>`;
+        }).join("");
+
+        let scheduleHtml = CONFIG.SCHEDULE.map((block, blockIndex) => {
+          const itemsHtml = block.items.map((item, itemOffset) => {
+            const globalIndex = CONFIG.SCHEDULE.slice(0, blockIndex).reduce((sum, b) => sum + b.items.length, 0) + itemOffset;
+            return `<label class="flex items-start gap-3">
+              <input type="checkbox" id="daily-item-${globalIndex}" onchange="saveDailyScheduleState(${globalIndex})"
+                     class="glow-aqua mt-1 rounded-md border-cyan-800 bg-blue-950 text-teal-500 h-4 w-4">
+              <span class="block">${item}</span>
+            </label>`;
+          }).join("");
+          return `
+            <div class="flex flex-col sm:flex-row gap-2 border-b border-blue-900/50 pb-2">
+              <div class="w-24 text-sky-400 font-bold text-xs uppercase tracking-wider">${block.block}</div>
+              <div class="flex-1 text-sm text-cyan-100/90 space-y-2">${itemsHtml}</div>
+            </div>`;
+        }).join("");
+
+        return `
+          <div class="space-y-4">
+            <div class="p-4 bg-teal-950/30 rounded-xl border border-teal-500/20">
+              <h4 class="text-sm font-bold text-cyan-300 mb-2">Weekly Focus Structure</h4>
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs text-cyan-100/80">${focusGrid}</div>
+            </div>
+            <div class="space-y-2">${scheduleHtml}</div>
+          </div>`;
+      }
+
+      // ─────────────────────────────────────────────────────────────
+      // TAB SWITCHING
+      // ─────────────────────────────────────────────────────────────
+      let currentTabKey = "week1";
+
+      function switchTab(tabKey) {
+        currentTabKey = tabKey;
+
+        // Update tab styles
+        document.querySelectorAll(".day-tab").forEach(t => {
+          t.classList.remove("bg-gradient-to-r", "from-teal-500", "to-cyan-500", "text-white", "shadow-lg");
+          t.classList.add("text-cyan-300/60", "hover:text-cyan-200");
+        });
+        const activeTab = document.getElementById(`tab-${tabKey}`);
+        if (activeTab) {
+          activeTab.classList.remove("text-cyan-300/60", "hover:text-cyan-200");
+          activeTab.classList.add("bg-gradient-to-r", "from-teal-500", "to-cyan-500", "text-white", "shadow-lg");
+        }
+
+        const isWeek = tabKey.startsWith("week");
+        const weekData = CONFIG.WEEKS[tabKey];
+        const sharedSection = document.getElementById("sharedWeeklySection");
+
+        if (isWeek && weekData) {
+          document.getElementById("currentTabSubtitle").innerText = weekData.subtitle;
+          document.getElementById("currentTabTitle").innerText    = weekData.title;
+          document.getElementById("tabContentArea").innerHTML      = buildWeekContent(tabKey);
+          sharedSection.classList.remove("hidden");
+          renderWeekChecklist(tabKey);
+          renderWeekDailySchedule(tabKey);
+        } else {
+          document.getElementById("currentTabSubtitle").innerText = "Time & Weekly Focus Structure";
+          document.getElementById("currentTabTitle").innerText    = "Daily Time Template";
+          document.getElementById("tabContentArea").innerHTML      = buildDailyContent();
+          sharedSection.classList.add("hidden");
+          renderDailyScheduleState();
+          renderDailyTodos();
+        }
+
+        updateAllProgress();
+      }
+
+      // ─────────────────────────────────────────────────────────────
+      // WEEKLY CHECKLIST
+      // ─────────────────────────────────────────────────────────────
+      function renderWeekChecklist(weekKey) {
+        const container = document.getElementById("weekChecklistArea");
+        if (!container) return;
+        const defaults = (CONFIG.WEEKS[weekKey] || CONFIG.WEEKS.week1).checklist;
+        container.innerHTML = weekDayLabels.map((day, index) => {
+          const defaultText = defaults[index] || `Plan ${day}`;
+          return `
+            <label class="grid grid-cols-[auto_1fr] gap-3 items-start p-3 rounded-2xl bg-blue-950/30 border border-blue-500/20">
+              <input type="checkbox" id="${weekKey}-day-${index}" onchange="saveWeekDayState('${weekKey}', ${index})"
+                     class="glow-aqua mt-1 rounded-md border-cyan-800 bg-blue-950 text-teal-500 h-4 w-4">
+              <div class="space-y-2">
+                <div class="flex items-center justify-between gap-3">
+                  <span class="text-sm font-bold text-cyan-100">${day}</span>
+                  <button type="button" onclick="resetWeekChecklistDay('${weekKey}', ${index})"
+                          class="text-[10px] uppercase tracking-widest text-teal-300 hover:text-teal-100">Reset</button>
+                </div>
+                <input type="text" id="${weekKey}-task-${index}"
+                       class="w-full bg-blue-950/50 border border-blue-500/20 rounded-xl px-3 py-2 text-sm text-cyan-100 focus:outline-none focus:border-teal-400"
+                       placeholder="${defaultText.replace(/"/g, "&quot;")}"
+                       onchange="saveWeekDayState('${weekKey}', ${index})">
+              </div>
+            </label>`;
+        }).join("");
+        weekDayLabels.forEach((_, i) => loadWeekChecklistState(weekKey, i));
+      }
+
+      function saveWeekDayState(weekKey, index) {
+        const cb = document.getElementById(`${weekKey}-day-${index}`);
+        const ti = document.getElementById(`${weekKey}-task-${index}`);
+        if (!cb || !ti) return;
+        localStorage.setItem(`${weekKey}_day_${index}_checked`, cb.checked);
+        localStorage.setItem(`${weekKey}_day_${index}_text`, ti.value.trim());
+        markActivity();
+        updateAllProgress();
+      }
+
+      function loadWeekChecklistState(weekKey, index) {
+        const cb = document.getElementById(`${weekKey}-day-${index}`);
+        const ti = document.getElementById(`${weekKey}-task-${index}`);
+        if (!cb || !ti) return;
+        const checked = localStorage.getItem(`${weekKey}_day_${index}_checked`);
+        const text    = localStorage.getItem(`${weekKey}_day_${index}_text`);
+        if (checked !== null) cb.checked = checked === "true";
+        if (text    !== null) ti.value   = text;
+      }
+
+      function resetWeekChecklistDay(weekKey, index) {
+        const cb = document.getElementById(`${weekKey}-day-${index}`);
+        const ti = document.getElementById(`${weekKey}-task-${index}`);
+        if (cb) cb.checked = false;
+        if (ti) ti.value   = "";
+        localStorage.removeItem(`${weekKey}_day_${index}_checked`);
+        localStorage.removeItem(`${weekKey}_day_${index}_text`);
+      }
+
+      function resetWeekChecklist(weekKey) {
+        weekDayLabels.forEach((_, i) => resetWeekChecklistDay(weekKey, i));
+        updateAllProgress();
+      }
+
+      // ─────────────────────────────────────────────────────────────
+      // WEEK DAILY SCHEDULE (inside shared section)
+      // ─────────────────────────────────────────────────────────────
+      function renderWeekDailySchedule(weekKey) {
+        const container = document.getElementById("weekDailyScheduleArea");
+        if (!container) return;
+        const tasks = (CONFIG.WEEKS[weekKey] || {}).dailySchedule || [];
+        container.innerHTML = tasks.map((task, i) => `
+          <label class="flex items-start gap-3 p-2.5 rounded-xl bg-blue-950/30 border border-blue-500/20 hover:bg-blue-950/50 transition cursor-pointer">
+            <input type="checkbox" id="${weekKey}-daily-schedule-${i}" onchange="saveWeekDailyScheduleState('${weekKey}', ${i})"
+                   class="glow-aqua mt-1 rounded-md border-cyan-800 bg-blue-950 text-teal-500 h-4 w-4">
+            <span class="text-sm text-cyan-100/90">${task}</span>
+          </label>`).join("");
+        tasks.forEach((_, i) => loadWeekDailyScheduleState(weekKey, i));
+      }
+
+      function saveWeekDailyScheduleState(weekKey, index) {
+        const cb = document.getElementById(`${weekKey}-daily-schedule-${index}`);
+        if (!cb) return;
+        localStorage.setItem(`${weekKey}_daily_schedule_${index}_checked`, cb.checked);
+        markActivity();
+        updateAllProgress();
+      }
+
+      function loadWeekDailyScheduleState(weekKey, index) {
+        const cb = document.getElementById(`${weekKey}-daily-schedule-${index}`);
+        if (!cb) return;
+        const val = localStorage.getItem(`${weekKey}_daily_schedule_${index}_checked`);
+        if (val !== null) cb.checked = val === "true";
+      }
+
+      // ─────────────────────────────────────────────────────────────
+      // DAILY SCHEDULE STATE (daily tab checkboxes)
+      // ─────────────────────────────────────────────────────────────
+      function getDailyScheduleCount() {
+        return CONFIG.SCHEDULE.reduce((sum, b) => sum + b.items.length, 0);
+      }
+
+      function saveDailyScheduleState(index) {
+        const cb = document.getElementById(`daily-item-${index}`);
+        if (!cb) return;
+        localStorage.setItem(`daily_schedule_item_${index}_checked`, cb.checked);
+        markActivity();
+        updateAllProgress();
+      }
+
+      function renderDailyScheduleState() {
+        for (let i = 0; i < getDailyScheduleCount(); i++) {
+          const cb = document.getElementById(`daily-item-${i}`);
+          if (!cb) continue;
+          const val = localStorage.getItem(`daily_schedule_item_${i}_checked`);
+          if (val !== null) cb.checked = val === "true";
+        }
+      }
+
+      // ─────────────────────────────────────────────────────────────
+      // DAILY TODOS (shown in the daily tab)
+      // ─────────────────────────────────────────────────────────────
+      function getDailyTodosKey(key) { return `daily_todos_${key}`; }
+
+      function loadDailyTodosForKey(key) {
+        try { return JSON.parse(localStorage.getItem(getDailyTodosKey(key)) || "[]"); }
+        catch { return []; }
+      }
+
+      function saveDailyTodosForKey(key, todos) {
+        localStorage.setItem(getDailyTodosKey(key), JSON.stringify(todos));
+      }
+
+      function renderDailyTodos() {
+        const key  = getTodayKey();
+        const list = document.getElementById("dailyTodosList");
+        if (!list) return;
+        const todos = loadDailyTodosForKey(key);
+        if (!todos.length) {
+          list.innerHTML = `<p class="text-xs text-cyan-300/60 italic">No todos for today. Add one!</p>`;
+          return;
+        }
+        list.innerHTML = todos.map((t, i) => `
+          <div class="flex items-center gap-3 p-2 rounded-xl bg-blue-950/30 border border-blue-900/30">
+            <input type="checkbox" id="daily-todo-${i}" ${t.done ? "checked" : ""} onchange="toggleDailyTodo(${i})" class="glow-aqua h-4 w-4">
+            <div class="flex-1 text-sm ${t.done ? "line-through text-cyan-400/60" : "text-cyan-100/90"}">${t.text}</div>
+            <button onclick="removeDailyTodo(${i})" class="text-xs text-rose-400 hover:text-rose-300">Remove</button>
+          </div>`).join("");
+      }
+
+      function addDailyTodo() {
+        const input = document.getElementById("dailyTodoInput");
+        if (!input) return;
+        const text = input.value.trim();
+        if (!text) return;
+        const key   = getTodayKey();
+        const todos = loadDailyTodosForKey(key);
+        todos.push({ text, done: false, time: new Date().toLocaleTimeString() });
+        saveDailyTodosForKey(key, todos);
+        input.value = "";
+        renderDailyTodos();
+        markActivity();
+        updateAllProgress();
+      }
+
+      function toggleDailyTodo(index) {
+        const key   = getTodayKey();
+        const todos = loadDailyTodosForKey(key);
+        if (!todos[index]) return;
+        todos[index].done = !todos[index].done;
+        saveDailyTodosForKey(key, todos);
+        renderDailyTodos();
+        markActivity();
+        updateAllProgress();
+      }
+
+      function removeDailyTodo(index) {
+        const key   = getTodayKey();
+        const todos = loadDailyTodosForKey(key);
+        todos.splice(index, 1);
+        saveDailyTodosForKey(key, todos);
+        renderDailyTodos();
+        markActivity();
+        updateAllProgress();
+      }
+
+      // ─────────────────────────────────────────────────────────────
+      // PROGRESS CALCULATIONS
+      // ─────────────────────────────────────────────────────────────
+      function markActivity() {
+        localStorage.setItem(`activity_${new Date().toLocaleDateString()}`, "true");
+        calculateStreak();
+      }
+
+      function updateProgress() {
+        markActivity();
+        saveHabitState();
+        updateAllProgress();
+      }
+
+      function saveHabitState() {
+        const today = getTodayStr();
+        CONFIG.HABITS.forEach(h => {
+          const cb = document.getElementById(`habit-${h.id}`);
+          if (cb) localStorage.setItem(`sprint_${today}_habit-${h.id}`, cb.checked);
+        });
+      }
+
+      function loadHabitState() {
+        const today = getTodayStr();
+        CONFIG.HABITS.forEach(h => {
+          const cb  = document.getElementById(`habit-${h.id}`);
+          const val = localStorage.getItem(`sprint_${today}_habit-${h.id}`);
+          if (cb && val !== null) cb.checked = val === "true";
+        });
+        updateProgress();
+      }
+
+      function updateNonNegotiablesProgress() {
+        const cbs     = Array.from(document.querySelectorAll('#nonNegotiablesList input[type="checkbox"]'));
+        const checked = cbs.filter(c => c.checked).length;
+        const pct     = cbs.length ? Math.round((checked / cbs.length) * 100) : 0;
+        setProgressCircle("progressCircle", "progressText", pct);
+        const st = document.getElementById("progressStatus");
+        if (st) st.innerText = pct === 100 ? "All done — keep the streak!" : "Let's create momentum! 💧";
+      }
+
+      function updateWeeklyProgress(weekKey) {
+        const cbs     = Array.from(document.querySelectorAll(`#weekChecklistArea input[type="checkbox"]`));
+        const checked = cbs.filter(c => c.checked).length;
+        const pct     = cbs.length ? Math.round((checked / cbs.length) * 100) : 0;
+        setProgressCircle("weeklyProgressCircle", "weeklyProgressText", pct);
+        const st = document.getElementById("weeklyProgressStatus");
+        if (st) st.innerText = pct === 100 ? "Weekly goals are complete!" : `Weekly goal progress — ${checked}/${cbs.length}`;
+      }
+
+      function updateMonthlyProgress() {
+        let total = 0, done = 0;
+
+        // Habits
+        const habitCbs = Array.from(document.querySelectorAll('#nonNegotiablesList input[type="checkbox"]'));
+        total += habitCbs.length;
+        done  += habitCbs.filter(c => c.checked).length;
+
+        // Daily schedule items
+        const dsc = getDailyScheduleCount();
+        total += dsc;
+        for (let i = 0; i < dsc; i++) {
+          if (localStorage.getItem(`daily_schedule_item_${i}_checked`) === "true") done++;
+        }
+
+        // All week checklists and daily schedules
+        Object.keys(CONFIG.WEEKS).forEach(wk => {
+          const w = CONFIG.WEEKS[wk];
+          (w.checklist || []).forEach((_, i) => {
+            total++;
+            if (localStorage.getItem(`${wk}_day_${i}_checked`) === "true") done++;
+          });
+          (w.dailySchedule || []).forEach((_, i) => {
+            total++;
+            if (localStorage.getItem(`${wk}_daily_schedule_${i}_checked`) === "true") done++;
+          });
+        });
+
+        // Days page items
+        for (let day = 1; day <= CONFIG.OWNER.sprintDays; day++) {
+          const state = JSON.parse(localStorage.getItem(`day_${day}_state`) || "{}");
+          ["negotiables", "schedule", "todos"].forEach(sec => {
+            if (Array.isArray(state[sec])) {
+              state[sec].forEach(item => { total++; if (item.done) done++; });
+            }
+          });
+        }
+
+        const pct = total ? Math.round((done / total) * 100) : 0;
+        setProgressCircle("monthlyProgressCircle", "monthlyProgressText", pct);
+        const st = document.getElementById("monthlyProgressStatus");
+        if (st) st.innerText = pct === 100 ? "Month complete — incredible!" : "Monthly progress from all checklists.";
+      }
+
+      function updateAllProgress() {
+        updateNonNegotiablesProgress();
+        if (currentTabKey.startsWith("week")) updateWeeklyProgress(currentTabKey);
+        updateMonthlyProgress();
+      }
+
+      // ─────────────────────────────────────────────────────────────
+      // DAILY LOG
+      // ─────────────────────────────────────────────────────────────
+      function saveLog() {
+        const input = document.getElementById("progressLogInput");
+        const text  = input.value.trim();
+        if (!text) return;
+        const timestamp = new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+        const logs = JSON.parse(localStorage.getItem("sprint_logs") || "[]");
+        logs.unshift({ time: timestamp, content: text });
+        localStorage.setItem("sprint_logs", JSON.stringify(logs));
+        input.value = "";
+        markActivity();
+        fetchLogs();
+      }
+
+      function fetchLogs() {
+        const feed = document.getElementById("logFeed");
+        const logs = JSON.parse(localStorage.getItem("sprint_logs") || "[]");
+        if (!logs.length) {
+          feed.innerHTML = `<p class="text-xs text-cyan-400/30 italic text-center py-4">No logs yet. Start executing!</p>`;
+          return;
+        }
+        feed.innerHTML = logs.map(log => `
+          <div class="p-2.5 rounded-xl bg-blue-950/40 border border-blue-900/30 text-xs">
+            <span class="text-[10px] font-bold text-teal-400 block mb-0.5">${log.time}</span>
+            <p class="text-cyan-100/80 leading-relaxed">${log.content}</p>
+          </div>`).join("");
+      }
+
+      // ─────────────────────────────────────────────────────────────
+      // SECRET LETTER (Vent)
+      // ─────────────────────────────────────────────────────────────
+      function getVentUnlockDate() {
+        const sl = CONFIG.SECRET_LETTER;
+        const d  = new Date();
+        d.setMonth(sl.unlockMonth);
+        d.setDate(sl.unlockDay);
+        d.setHours(0, 0, 0, 0);
+        return d;
+      }
+
+      function isVentUnlocked() { return new Date() >= getVentUnlockDate(); }
+
+      function getVentStorageKey() {
+        const y = new Date().getFullYear();
+        const sl = CONFIG.SECRET_LETTER;
+        return `vent_messages_${y}_${String(sl.unlockMonth + 1).padStart(2, "0")}_${String(sl.unlockDay).padStart(2, "0")}`;
+      }
+
+      function loadVentMessages() {
+        try { return JSON.parse(localStorage.getItem(getVentStorageKey()) || "[]"); }
+        catch { return []; }
+      }
+
+      function storeVentEntry() {
+        const ta = document.getElementById("ventTextarea");
+        if (!ta) return;
+        const text = ta.value.trim();
+        if (!text) return;
+        const msgs = loadVentMessages();
+        msgs.push({ text, time: new Date().toLocaleString() });
+        localStorage.setItem(getVentStorageKey(), JSON.stringify(msgs));
+        ta.value = "";
+        renderVentHistory();
+      }
+
+      function renderVentHistory() {
+        const unlocked = isVentUnlocked();
+        const msgs     = loadVentMessages();
+        const formatted = getVentUnlockDate().toLocaleDateString();
+        const prompt    = document.getElementById("ventPrompt");
+        const countEl   = document.getElementById("ventCount");
+        const hint      = document.getElementById("ventUnlockHint");
+        const history   = document.getElementById("ventHistory");
+
+        if (prompt)  prompt.innerText  = unlocked ? "Your secret letters are revealed." : `Your secret letters are hidden until ${formatted}.`;
+        if (hint)    hint.innerText    = `Your words are stored safely and revealed only on ${formatted}.`;
+        if (countEl) countEl.innerText = msgs.length === 0 ? "No stored vents yet." : `${msgs.length} stored vent${msgs.length === 1 ? "" : "s"}`;
+        if (!history) return;
+
+        if (!unlocked) {
+          history.innerHTML = `<p class="text-xs text-cyan-300/60 italic">Vents are hidden until ${formatted}.</p>`;
+          return;
+        }
+        if (!msgs.length) {
+          history.innerHTML = `<p class="text-xs text-cyan-300/60 italic">No vents stored.</p>`;
+          return;
+        }
+        history.innerHTML = msgs.map(m => `
+          <div class="p-3 rounded-xl bg-blue-950/40 border border-blue-900/30 text-sm">
+            <div class="text-[11px] text-teal-300 mb-1">${m.time}</div>
+            <div class="text-cyan-100/80">${m.text}</div>
+          </div>`).join("");
+      }
+
+      // ─────────────────────────────────────────────────────────────
+      // POMODORO
+      // ─────────────────────────────────────────────────────────────
+      let pomodoroWorkTime    = CONFIG.POMODORO.workMinutes       * 60;
+      let pomodoroShortBreak  = CONFIG.POMODORO.shortBreakMinutes * 60;
+      let pomodoroLongBreak   = CONFIG.POMODORO.longBreakMinutes  * 60;
+      let pomodoroTime        = pomodoroWorkTime;
+      let pomodoroInterval    = null;
+      let isPomodoroRunning   = false;
+      let pomodoroSessionState = "work";
+      let pomodoroSound       = CONFIG.POMODORO.defaultSound;
+      let pomodoroNotifications = false;
+      let pomodoroAudioCtx    = null;
+
+      function updatePomodoroDisplay() {
+        const m = Math.floor(pomodoroTime / 60).toString().padStart(2, "0");
+        const s = (pomodoroTime % 60).toString().padStart(2, "0");
+        const el = document.getElementById("pomodoroDisplay");
+        if (el) el.innerText = `${m}:${s}`;
+      }
+
+      function initAudioContext() {
+        try {
+          if (!pomodoroAudioCtx) pomodoroAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          if (pomodoroAudioCtx.state === "suspended") pomodoroAudioCtx.resume();
+        } catch (e) { console.error("AudioContext init error:", e); }
+      }
+
+      function setPomoSessionState(state) {
+        if (isPomodoroRunning && !confirm("Timer is running. Switch session and reset?")) return;
+        clearInterval(pomodoroInterval);
+        isPomodoroRunning    = false;
+        pomodoroSessionState = state;
+
+        ["work", "shortBreak", "longBreak"].forEach(t => {
+          const btn = document.getElementById(`pomoStateTab-${t}`);
+          if (btn) {
+            btn.classList.remove("bg-amber-500/20", "text-amber-300");
+            btn.classList.add("text-cyan-300/60", "hover:text-cyan-200");
+          }
+        });
+        const active = document.getElementById(`pomoStateTab-${state}`);
+        if (active) {
+          active.classList.remove("text-cyan-300/60", "hover:text-cyan-200");
+          active.classList.add("bg-amber-500/20", "text-amber-300");
+        }
+
+        pomodoroTime = state === "work" ? pomodoroWorkTime : state === "shortBreak" ? pomodoroShortBreak : pomodoroLongBreak;
+        updatePomodoroDisplay();
+        const btn = document.getElementById("pomodoroToggleBtn");
+        if (btn) { btn.innerText = "Start"; btn.classList.replace("from-rose-500", "from-amber-500"); btn.classList.replace("to-red-500", "to-orange-500"); }
+      }
+
+      function togglePomodoro() {
+        initAudioContext();
+        const btn = document.getElementById("pomodoroToggleBtn");
+        if (isPomodoroRunning) {
+          clearInterval(pomodoroInterval);
+          btn.innerText = "Start";
+          btn.classList.remove("from-rose-500", "to-red-500");
+          btn.classList.add("from-amber-500", "to-orange-500");
+        } else {
+          pomodoroInterval = setInterval(() => {
+            if (pomodoroTime > 0) { pomodoroTime--; updatePomodoroDisplay(); }
+            else handlePomodoroCompletion();
+          }, 1000);
+          btn.innerText = "Pause";
+          btn.classList.remove("from-amber-500", "to-orange-500");
+          btn.classList.add("from-rose-500", "to-red-500");
+        }
+        isPomodoroRunning = !isPomodoroRunning;
+      }
+
+      function handlePomodoroCompletion() {
+        clearInterval(pomodoroInterval);
+        isPomodoroRunning = false;
+        playPomodoroChime();
+
+        const isWork = pomodoroSessionState === "work";
+        const title  = isWork ? "Pomodoro Complete! ⏱️" : "Break Over! ☕";
+        const body   = isWork ? "Great work! Time for a short break. 🎉" : "Ready to focus? Let's go! 🚀";
+        const next   = isWork ? "shortBreak" : "work";
+
+        if (isWork) {
+          const key   = getPomoSessionsKey();
+          const count = parseInt(localStorage.getItem(key)) || 0;
+          localStorage.setItem(key, count + 1);
+          loadPomoSessions();
+        }
+
+        if (pomodoroNotifications && Notification.permission === "granted") {
+          try { new Notification(title, { body }); } catch (e) { console.error(e); }
+        }
+
+        setTimeout(() => { alert(`${title}\n\n${body}`); setPomoSessionState(next); }, 100);
+
+        const btn = document.getElementById("pomodoroToggleBtn");
+        if (btn) { btn.innerText = "Start"; btn.classList.remove("from-rose-500", "to-red-500"); btn.classList.add("from-amber-500", "to-orange-500"); }
+      }
+
+      function resetPomodoro() {
+        clearInterval(pomodoroInterval);
+        isPomodoroRunning = false;
+        pomodoroTime = pomodoroSessionState === "work" ? pomodoroWorkTime : pomodoroSessionState === "shortBreak" ? pomodoroShortBreak : pomodoroLongBreak;
+        updatePomodoroDisplay();
+        const btn = document.getElementById("pomodoroToggleBtn");
+        if (btn) { btn.innerText = "Start"; btn.classList.remove("from-rose-500", "to-red-500"); btn.classList.add("from-amber-500", "to-orange-500"); }
+      }
+
+      function togglePomodoroSettings() {
+        initAudioContext();
+        const panel = document.getElementById("pomodoroSettingsPanel");
+        if (panel) panel.classList.toggle("hidden");
+      }
+
+      function togglePomoNotifications() {
+        initAudioContext();
+        if (Notification.permission === "denied") { alert("Notifications blocked. Enable them in browser settings."); return; }
+        if (Notification.permission === "granted") {
+          pomodoroNotifications = !pomodoroNotifications;
+        } else {
+          Notification.requestPermission().then(p => {
+            pomodoroNotifications = p === "granted";
+            if (!pomodoroNotifications) alert("Desktop notifications not enabled.");
+          });
+        }
+        localStorage.setItem("pomodoro_notifications", pomodoroNotifications);
+        updateNotificationUI(pomodoroNotifications);
+      }
+
+      function updateNotificationUI(enabled) {
+        const btn = document.getElementById("pomoNotificationToggle");
+        if (!btn) return;
+        if (enabled && Notification.permission === "granted") {
+          btn.innerText = "Enabled";
+          btn.className = "w-full py-1.5 rounded-xl text-xs font-bold transition border border-emerald-500/30 bg-emerald-950/20 text-emerald-400 hover:bg-emerald-950/30";
+        } else {
+          btn.innerText = "Disabled";
+          btn.className = "w-full py-1.5 rounded-xl text-xs font-bold transition border border-red-500/30 bg-red-950/20 text-red-400 hover:bg-red-950/30";
+        }
+      }
+
+      function getPomoSessionsKey() { return `pomo_sessions_${getTodayStr()}`; }
+
+      function loadPomoSessions() {
+        const count = parseInt(localStorage.getItem(getPomoSessionsKey())) || 0;
+        const el = document.getElementById("pomoSessionCount");
+        if (el) el.innerText = count;
+      }
+
+      function adjustPomoSessions(amount) {
+        initAudioContext();
+        const key   = getPomoSessionsKey();
+        const count = Math.max(0, (parseInt(localStorage.getItem(key)) || 0) + amount);
+        localStorage.setItem(key, count);
+        loadPomoSessions();
+      }
+
+      function loadPomodoroSettings() {
+        const workMin  = parseInt(localStorage.getItem("pomodoro_work_duration"))  || CONFIG.POMODORO.workMinutes;
+        const shortMin = parseInt(localStorage.getItem("pomodoro_short_duration")) || CONFIG.POMODORO.shortBreakMinutes;
+        const longMin  = parseInt(localStorage.getItem("pomodoro_long_duration"))  || CONFIG.POMODORO.longBreakMinutes;
+
+        pomodoroWorkTime   = workMin  * 60;
+        pomodoroShortBreak = shortMin * 60;
+        pomodoroLongBreak  = longMin  * 60;
+        pomodoroSound      = localStorage.getItem("pomodoro_sound") || CONFIG.POMODORO.defaultSound;
+        pomodoroNotifications = localStorage.getItem("pomodoro_notifications") === "true";
+
+        const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+        setVal("pomoWorkDuration",  workMin);
+        setVal("pomoShortDuration", shortMin);
+        setVal("pomoLongDuration",  longMin);
+        setVal("pomoSoundSelect",   pomodoroSound);
+
+        updateNotificationUI(pomodoroNotifications);
+        loadPomoSessions();
+
+        if (!isPomodoroRunning) {
+          pomodoroTime = pomodoroWorkTime;
+          updatePomodoroDisplay();
+        }
+      }
+
+      function savePomodoroSettings() {
+        initAudioContext();
+        const getNum = (id, def) => parseInt(document.getElementById(id)?.value) || def;
+        const workMin  = getNum("pomoWorkDuration",  CONFIG.POMODORO.workMinutes);
+        const shortMin = getNum("pomoShortDuration", CONFIG.POMODORO.shortBreakMinutes);
+        const longMin  = getNum("pomoLongDuration",  CONFIG.POMODORO.longBreakMinutes);
+        const sound    = document.getElementById("pomoSoundSelect")?.value || CONFIG.POMODORO.defaultSound;
+
+        localStorage.setItem("pomodoro_work_duration",  workMin);
+        localStorage.setItem("pomodoro_short_duration", shortMin);
+        localStorage.setItem("pomodoro_long_duration",  longMin);
+        localStorage.setItem("pomodoro_sound",          sound);
+
+        pomodoroWorkTime   = workMin  * 60;
+        pomodoroShortBreak = shortMin * 60;
+        pomodoroLongBreak  = longMin  * 60;
+        pomodoroSound      = sound;
+
+        if (!isPomodoroRunning) { pomodoroTime = pomodoroWorkTime; updatePomodoroDisplay(); }
+        const panel = document.getElementById("pomodoroSettingsPanel");
+        if (panel) panel.classList.add("hidden");
+        alert("Pomodoro settings saved!");
+      }
+
+      function testPomoAlert() {
+        initAudioContext();
+        playPomodoroChime();
+        if (pomodoroNotifications && Notification.permission === "granted") {
+          try { new Notification("Test Notification ⏱️", { body: "This is how you'll be alerted!" }); } catch (e) { console.error(e); }
+        } else {
+          setTimeout(() => alert("Sound tested! Enable Desktop Alerts for background notifications."), 150);
+        }
+      }
+
+      // ─────────────────────────────────────────────────────────────
+      // POMODORO SOUNDS
+      // ─────────────────────────────────────────────────────────────
+      function playPomodoroChime() {
+        if (pomodoroSound === "none") return;
+        try {
+          if (!pomodoroAudioCtx) pomodoroAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          if (pomodoroAudioCtx.state === "suspended") pomodoroAudioCtx.resume();
+          const now = pomodoroAudioCtx.currentTime;
+
+          const play = (freq, startOffset, duration, gain = 0.2, type = "sine") => {
+            const osc = pomodoroAudioCtx.createOscillator();
+            const g   = pomodoroAudioCtx.createGain();
+            osc.type = type;
+            osc.frequency.value = freq;
+            g.gain.setValueAtTime(gain, now + startOffset);
+            g.gain.exponentialRampToValueAtTime(0.001, now + startOffset + duration);
+            osc.connect(g);
+            g.connect(pomodoroAudioCtx.destination);
+            osc.start(now + startOffset);
+            osc.stop(now + startOffset + duration);
+          };
+
+          if (pomodoroSound === "classic") {
+            [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => play(f, i * 0.15, 0.3));
+          } else if (pomodoroSound === "zen") {
+            [150, 225, 300, 450].forEach((f, i) => play(f, 0, 2.5 / (i + 1), i === 0 ? 0.3 : 0.1));
+          } else if (pomodoroSound === "digital") {
+            play(880, 0,    0.1, 0.25, "triangle");
+            play(880, 0.15, 0.1, 0.25, "triangle");
+            play(880, 0.3,  0.2, 0.25, "triangle");
+          } else if (pomodoroSound === "uplifting") {
+            [783.99, 1046.5, 1318.51, 1567.98].forEach((f, i) => play(f, i * 0.08, 0.15, 0.15));
+          }
+        } catch (e) { console.error("Audio error:", e); }
+      }
+
+      // ─────────────────────────────────────────────────────────────
+      // WATER TRACKER
+      // ─────────────────────────────────────────────────────────────
+      function loadWaterTracker() {
+        const today = getTodayStr();
+        const count = parseInt(localStorage.getItem(`water_${today}`)) || 0;
+        const grid  = document.getElementById("waterTrackerGrid");
+        if (!grid) return;
+        grid.innerHTML = Array.from({ length: 8 }).map((_, i) => `
+          <button onclick="toggleWater(${i})"
+                  class="w-10 h-10 rounded-full flex items-center justify-center transition-all ${i < count ? "bg-sky-500 text-white shadow-[0_0_10px_rgba(14,165,233,0.5)]" : "bg-blue-950/50 border border-blue-500/20 text-sky-500/30 hover:bg-blue-900/60"}">
+            <span class="text-lg">💧</span>
+          </button>`).join("");
+      }
+
+      window.toggleWater = function (index) {
+        const today = getTodayStr();
+        let count   = parseInt(localStorage.getItem(`water_${today}`)) || 0;
+        if (index === count - 1)  count--;
+        else if (index === count) count++;
+        else count = index + 1;
+        localStorage.setItem(`water_${today}`, count);
+        loadWaterTracker();
+        calculateWaterStreak();
+      };
+
+      function calculateWaterStreak() {
+        let streak = 0;
+        const today = new Date();
+        for (let i = 0; i < 365; i++) {
+          const d    = new Date(today);
+          d.setDate(today.getDate() - i);
+          const val  = parseInt(localStorage.getItem(`water_${d.toLocaleDateString()}`)) || 0;
+          if (val >= 8) streak++;
+          else if (i > 0) break;
+        }
+        const el = document.getElementById("waterStreakCount");
+        if (el) el.innerText = streak;
+      }
+
+      // ─────────────────────────────────────────────────────────────
+      // MOTIVATIONAL QUOTE
+      // ─────────────────────────────────────────────────────────────
+      function loadDailyQuote() {
+        const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
+        const quote     = CONFIG.QUOTES[dayOfYear % CONFIG.QUOTES.length];
+        const qEl = document.getElementById("dailyQuote");
+        const aEl = document.getElementById("dailyQuoteAuthor");
+        if (qEl) qEl.innerText = `"${quote.text}"`;
+        if (aEl) aEl.innerText = `— ${quote.author}`;
+      }
+
+      // ─────────────────────────────────────────────────────────────
+      // STREAK COUNTER
+      // ─────────────────────────────────────────────────────────────
+      function calculateStreak() {
+        let streak = 0;
+        const today   = new Date();
+        const habitIds = CONFIG.HABITS.map(h => `habit-${h.id}`);
+        for (let i = 0; i < 365; i++) {
+          const d       = new Date(today);
+          d.setDate(today.getDate() - i);
+          const dateStr = d.toLocaleDateString();
+          const allHabitsDone = habitIds.length > 0 && habitIds.every(id => localStorage.getItem(`sprint_${dateStr}_${id}`) === "true");
+          const anyHabitsDone = habitIds.some(id => localStorage.getItem(`sprint_${dateStr}_${id}`) === "true");
+          const hasActivity   = localStorage.getItem(`activity_${dateStr}`) === "true";
+
+          if (allHabitsDone || hasActivity) { 
+             streak++; 
+          } else if (i === 0 && anyHabitsDone) { 
+             /* today in progress */ 
+          } else if (i === 0) { 
+             /* today untouched */ 
+          } else {
+             break;
+          }
+        }
+        const el   = document.getElementById("streakCount");
+        const card = document.getElementById("streakCard");
+        if (el)   el.innerText = streak;
+        if (card) { streak >= 7 ? card.classList.add("streak-glow") : card.classList.remove("streak-glow"); }
+      }
+
+      // ─────────────────────────────────────────────────────────────
+      // MOOD TRACKER
+      // ─────────────────────────────────────────────────────────────
+      function setMood(emoji) {
+        localStorage.setItem(`mood_${getTodayStr()}`, emoji);
+        renderMoodState();
+      }
+
+      function renderMoodState() {
+        const mood = localStorage.getItem(`mood_${getTodayStr()}`);
+        document.querySelectorAll("#moodButtons .mood-btn").forEach(btn => {
+          btn.classList.remove("active", "ring-2", "ring-white", "bg-teal-900/40");
+          if (mood && btn.innerText.trim() === mood)
+            btn.classList.add("active", "ring-2", "ring-white", "bg-teal-900/40");
+        });
+        const st = document.getElementById("moodStatus");
+        if (st) st.innerText = mood ? `Today's mood: ${mood}` : "Tap to log your mood";
+      }
+
+      // ─────────────────────────────────────────────────────────────
+      // SLEEP LOG
+      // ─────────────────────────────────────────────────────────────
+      function saveSleepLog() {
+        const today = getTodayStr();
+        const bed   = document.getElementById("sleepBedtime")?.value;
+        const wake  = document.getElementById("sleepWakeup")?.value;
+        localStorage.setItem(`sleep_bedtime_${today}`, bed);
+        localStorage.setItem(`sleep_wakeup_${today}`,  wake);
+        updateSleepDuration();
+      }
+
+      function loadSleepLog() {
+        const today = getTodayStr();
+        const bed   = localStorage.getItem(`sleep_bedtime_${today}`);
+        const wake  = localStorage.getItem(`sleep_wakeup_${today}`);
+        if (bed)  document.getElementById("sleepBedtime").value = bed;
+        if (wake) document.getElementById("sleepWakeup").value  = wake;
+        updateSleepDuration();
+      }
+
+      function updateSleepDuration() {
+        const bed  = document.getElementById("sleepBedtime")?.value;
+        const wake = document.getElementById("sleepWakeup")?.value;
+        const el   = document.getElementById("sleepDuration");
+        if (!bed || !wake || !el) { if (el) el.innerText = ""; return; }
+        const [bh, bm] = bed.split(":").map(Number);
+        const [wh, wm] = wake.split(":").map(Number);
+        let mins = (wh * 60 + wm) - (bh * 60 + bm);
+        if (mins < 0) mins += 24 * 60;
+        const hours = Math.floor(mins / 60), rem = mins % 60;
+        const emoji = (hours >= 7 && hours <= 9) ? "✅" : hours < 6 ? "⚠️" : "😴";
+        el.innerText = `${emoji} ${hours}h ${rem}m of sleep`;
+      }
+
+      // ─────────────────────────────────────────────────────────────
+      // HEATMAP
+      // ─────────────────────────────────────────────────────────────
+      function renderHeatmap() {
+        const grid = document.getElementById("heatmapGrid");
+        if (!grid) return;
+        let html = "";
+        for (let day = 1; day <= CONFIG.OWNER.sprintDays; day++) {
+          const state = JSON.parse(localStorage.getItem(`day_${day}_state`) || "{}");
+          let total = 0, done = 0;
+          ["negotiables", "schedule", "todos"].forEach(sec => {
+            if (Array.isArray(state[sec])) {
+              total += state[sec].length;
+              done  += state[sec].filter(i => i.done).length;
+            }
+          });
+          const pct = total > 0 ? done / total : 0;
+          const cls = pct === 0 ? "bg-blue-950/60 border border-blue-500/20"
+                    : pct < 0.25 ? "bg-amber-900/60"
+                    : pct < 0.5  ? "bg-amber-600/70"
+                    : pct < 1    ? "bg-emerald-600/80"
+                    :              "bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.4)]";
+          html += `<div class="heatmap-cell w-7 h-7 rounded-md ${cls} flex items-center justify-center text-[10px] font-bold text-white/70 cursor-default"
+                        title="Day ${day}: ${Math.round(pct * 100)}%">${day}</div>`;
+        }
+        grid.innerHTML = html;
+      }
+
+      // ─────────────────────────────────────────────────────────────
+      // EXPORT / IMPORT
+      // ─────────────────────────────────────────────────────────────
+      function exportData() {
+        const data = {};
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          data[key] = localStorage.getItem(key);
+        }
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement("a");
+        a.href     = url;
+        a.download = `tracker-backup-${new Date().toISOString().slice(0, 10)}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+
+      function importData(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = e => {
+          try {
+            const data = JSON.parse(e.target.result);
+            Object.keys(data).forEach(k => localStorage.setItem(k, data[k]));
+            alert("Data imported successfully! Refreshing...");
+            location.reload();
+          } catch { alert("Invalid backup file."); }
+        };
+        reader.readAsText(file);
+      }
+
+      // ─────────────────────────────────────────────────────────────
+      // LIVE CLOCK
+      // ─────────────────────────────────────────────────────────────
+      function updateLiveTime() {
+        const today = new Date();
+        const date  = today.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+        const time  = today.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true });
+        document.getElementById("liveDateDisplay").innerText = `💧 Today is ${date} — ${time}`;
+      }
+
+      // ─────────────────────────────────────────────────────────────
+      // KEYBOARD SHORTCUTS
+      // ─────────────────────────────────────────────────────────────
+      document.addEventListener("keydown", e => {
+        if (e.code === "Space" && !["INPUT", "TEXTAREA"].includes(document.activeElement.tagName)) {
+          e.preventDefault();
+          togglePomodoro();
+        }
+      });
+
+      // ─────────────────────────────────────────────────────────────
+      // BOOT
+      // ─────────────────────────────────────────────────────────────
+      window.onload = () => {
+        initFromConfig();
+        updateLiveTime();
+        setInterval(updateLiveTime, 1000);
+
+        switchTab("week1");
+        loadHabitState();
+        updateAllProgress();
+        fetchLogs();
+        renderVentHistory();
+        renderDailyTodos();
+        loadWaterTracker();
+        calculateWaterStreak();
+        loadDailyQuote();
+        calculateStreak();
+        renderMoodState();
+        loadSleepLog();
+        renderHeatmap();
+        loadPomodoroSettings();
+      };
+    </script>
+  </body>
+</html>
