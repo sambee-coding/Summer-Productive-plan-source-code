@@ -1,8 +1,8 @@
-# 🚀 30-Day Sprint Tracker (Customizable Template)
+#  30-Day Sprint Tracker (Customizable Template)
 
 A beautiful, static, and entirely customizable personal productivity dashboard built to track 30-day sprints. Keep track of your daily non-negotiable habits, manage your schedule, log your mood, track your hydration, and document your reading journey — all entirely from your browser!
 
-## ✨ Features
+##  Features
 
 - **📊 Comprehensive Dashboard (`index.html`)**: Track your monthly/weekly progress, active streak, and mood.
 - **⏱️ Integrated Pomodoro Timer**: Built-in, fully customizable Pomodoro timer with alert sounds and desktop notifications.
