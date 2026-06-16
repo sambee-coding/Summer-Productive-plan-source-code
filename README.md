@@ -12,7 +12,7 @@ A beautiful, static, and entirely customizable personal productivity dashboard b
 - **💌 Secret Vent Letter**: Write a time-capsule letter to yourself that automatically unlocks on a date you choose!
 - **💾 Local Storage**: 100% private. All your progress is saved directly to your browser's local storage. No database required. Includes Export/Import capabilities so you never lose your data.
 
-## 🛠️ How to Customize (No Coding Required!)
+## How to Customize (No Coding Required!)
 
 You do not need to know HTML, CSS, or JavaScript to make this tracker your own! Everything is powered by a single configuration file.
 
@@ -22,7 +22,7 @@ You do not need to know HTML, CSS, or JavaScript to make this tracker your own! 
 
 *That's it! The HTML files will automatically read your `config.js` and build your custom website.*
 
-## 🏃 How to Run the App
+## How to Run the App
 
 Since this app is entirely static (HTML/CSS/JS), it requires no backend or complicated build process.
 
@@ -36,7 +36,7 @@ npx serve .
 ```
 Then open `http://localhost:3000` in your browser.
 
-## 🎨 Technologies Used
+##  Technologies Used
 - HTML5
 - Vanilla JavaScript
 - Tailwind CSS (via CDN)
